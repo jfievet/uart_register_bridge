@@ -102,7 +102,7 @@ begin
             clk0  => clk_main,
             rst0  => rst_main,
             rstn0 => rst_n_main
-        );
+    
     );
 
     --------------------------------------------------------
@@ -167,7 +167,7 @@ nco_pro : process (clk_main, rst_main)
             s_axi_rresp   => top_axi_rresp,
             soft_reset    => soft_reset,
             uart_txd      => GPIO0_D_0,
-        uart_rxd      => uart_rxd_d2
+            uart_rxd      => uart_rxd_d2
             );
 
     --unused AXI interface
@@ -192,3 +192,5 @@ sync_pr : process (clk_main, rst_main)
         uart_rxd_d2 <= uart_rxd_d1;
         end if;
         end process;
+        
+end rtl;
