@@ -103,11 +103,15 @@ Send one complete request, wait for its complete response, then send the next re
 
 Requests and responses are six bytes:
 
-| Byte | Contents |
-| --- | --- |
-| 0 | Start byte `0xAA` |
-| 1 | Bit 7: `0` for write, `1` for read; bits 6:0: word address |
-| 2–5 | 32-bit data, little endian |
+  Byte 0       Byte 1        Byte 2     Byte 3     Byte 4     Byte 5
++----------+--------------+----------+----------+----------+----------+
+|   0xAA   | R/W | Address | Data[7:0]|Data[15:8]|Data[23:16]|Data[31:24]|
++----------+--------------+----------+----------+----------+----------+
+             1 bit  7 bits              Little Endian
+
+R/W: 0 = Write, 1 = Read
+Address: 7-bit word address
+Data: 32-bit payload
 
 The AXI byte address is `word_address * 4`, covering aligned addresses `0x000` through `0x1FC`. Write responses echo the address and submitted data; read responses return the addressed value. The response preserves the read/write bit.
 
@@ -126,13 +130,18 @@ Read response:  AA A0 78 56 34 12
 
 Requests and responses are fourteen bytes:
 
-| Bytes | Contents |
-| --- | --- |
-| 0 | Start byte `0xAA` |
-| 1 | Command or response status |
-| 2–5 | 32-bit AXI byte address, little endian |
-| 6–9 | 32-bit data, little endian |
-| 10–13 | CRC-32, little endian |
+
+  Byte 0     Byte 1       Bytes 2-5       Bytes 6-9      Bytes 10-13
++----------+----------+----------------+----------------+----------------+
+|   0xAA   | Cmd/Status | AXI Address[31:0] | Data[31:0] | CRC-32[31:0] |
++----------+----------+----------------+----------------+----------------+
+                         Little Endian    Little Endian    Little Endian
+
+Cmd/Status : Command or response status
+AXI Address: 32-bit byte address
+Data       : 32-bit payload
+CRC-32     : 32-bit checksum
+
 
 Request commands are `0x01` for write and `0x02` for read. Successful responses use `0x81` and `0x82`. Responses echo the address; write responses echo the submitted data.
 
