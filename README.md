@@ -1,57 +1,334 @@
-UART Register Bridge
+# UART Register Bridge
 
-A reusable RTL module providing UART-based access to registers through a custom communication protocol.
+A VHDL design providing UART access to 32-bit FPGA registers through a custom request/response protocol. It includes an AXI4-Lite master bridge, a direct register-bank bridge, a reference integration, VUnit testbenches, and Windows host utilities.
 
-1. Overview
+## 1. Overview
 
-Features
+### Features
 
-Architecture overview
+- AXI4-Lite access with 32-bit addresses and data.
+- Direct access to a configurable bank of 32-bit registers without an AXI bus.
+- Compact six-byte frames addressing up to 128 registers.
+- Extended fourteen-byte frames with a 32-bit address and CRC-32.
+- Write acknowledgements and read responses.
+- Configurable UART divider and synchronous/asynchronous reset support.
+- A DE0 reference design targeting the Cyclone III EP3C16F484C6.
 
-2. Hardware Interface
+### Architecture overview
 
-Top-level interfaces
+```text
+Host <--> UART pins <--> uart.vhd <--> Protocol engine
+                                           |
+                   +-----------------------+----------------------+
+                   |                                              |
+            axil_end_bridge                               bank_end_bridge
+                   |                                              |
+           AXI4-Lite master                         write_reg / write_reg_en
+                   |                                        / read_reg
+           AXI interconnect                                       |
+                   |                                      Application logic
+       System slot + test slots
+```
 
-Configuration parameters
+`uart_axi_lite_bridge` combines the UART with the AXI protocol engine. `uart_bank_bridge` combines the UART with the bank engine. `top_integration` instantiates both wrappers and statically selects the UART path through package constants. Its external AXI4-Lite slave port provides a second access path to the AXI interconnect.
 
-Clock and reset
+## 2. Hardware Interface
 
-3. UART Communication Protocol
+### Top-level interfaces
 
-UART configuration
+| Entity | Main signals | Purpose |
+| --- | --- | --- |
+| `uart_axi_lite_bridge` | `txd`, `rxd`, `m_axi_*` | UART to AXI4-Lite master |
+| `uart_bank_bridge` | `txd`, `rxd`, `write_reg`, `write_reg_en`, `read_reg` | UART to direct register bank |
+| `top_integration` | `uart_txd`, `uart_rxd`, `s_axi_*`, `soft_reset`, `timeout_error_flag` | Reference system |
 
-Common framing and CRC
+Both bridge wrappers expose `crc_error_flag`, `crc_error_flag_en`, and `timeout_error_flag`. The reference integration routes CRC status to the system module counters.
 
-AXI Compact Mode
+AXI interfaces use AW, W, B, AR, and R channels, 32-bit addresses/data, four write strobes, and two-bit responses. UART-originated writes always use `WSTRB = "1111"`; the serial protocol has no byte-enable field.
 
-AXI Extended Mode
+### Configuration parameters
 
-Register Bank Compact Mode
+| Generic | Default | Meaning |
+| --- | --- | --- |
+| `uart_clock_divider` | `108` | System clocks per UART oversampling tick |
+| `use_async_reset` | `TRUE` | Enable asynchronous reset |
+| `use_sync_reset` | `TRUE` | Enable synchronous reset |
+| `async_reset_active` | `'1'` | Asynchronous reset active level |
+| `sync_reset_active` | `'1'` | Synchronous reset active level |
+| `frame_mode` | `0` in bridge wrappers | `0`: extended; `1`: compact |
+| `nbreg` | `128` in bank wrapper | Number of 32-bit bank registers |
+| `clock_frequency` | `100_000_000` in `top_integration` | Clock frequency used for system counters |
 
-Commands, responses and error handling
+The protocol engines also expose `timeout_pulses`, defaulting to `1_500_000` clock cycles, and `allow_bad_crc`, defaulting to `0`. The bank wrapper forwards both generics; the AXI wrapper uses their engine defaults.
 
-4. Integration
+Both files under `src/conf/` declare the same package, `top_integration_pkg`. Compile exactly one:
 
-RTL instantiation
+| Intended configuration | Package file | `register_interface_mode` | `frame_mode` |
+| --- | --- | --- | --- |
+| AXI extended | `top_integration_extended_pkg.vhd` | `0` | `0` |
+| AXI compact | `top_integration_compact_pkg.vhd` | Set to `0` | `1` |
+| Bank compact | `top_integration_compact_pkg.vhd` | `1` | `1` |
 
-Register address mapping
+**Current configuration caveats:**
 
-AXI and direct register bank integration
+- The committed compact package selects bank mode. Set `register_interface_mode` to `0` before using the AXI compact testbench or host utility.
+- The extended package omits `const_nb_bank_registers`, although `top_integration` references it unconditionally. Add `constant const_nb_bank_registers : positive := 128;` to that package before compiling the extended reference integration.
 
-5. Simulation and Validation
+### Clock and reset
 
-Testbench and simulation
+The bridges operate in one `clock` domain. Asynchronous reset has priority; synchronous reset is evaluated on the rising edge. Drive unused inputs to defined values and synchronize external UART RX into the clock domain. The DE0 wrapper includes a two-stage RX synchronizer.
 
-FPGA hardware validation (DE0)
+`soft_reset` is a one-clock pulse generated by a write to system register 5. Application logic must connect it to the desired reset function; the DE0 wrapper does not feed it back into its reset generator.
 
-Performance and throughput
+## 3. UART Communication Protocol
 
-6. Repository Structure
+### UART configuration
 
-RTL sources
+The UART uses 8N1: eight data bits, no parity, one stop bit, idle high, and least significant bit first within each byte. It uses eight oversampling ticks per bit:
 
-Simulation and testbench
+```text
+baud rate = clock frequency / (8 * uart_clock_divider)
+divider   = round(clock frequency / (8 * desired baud rate))
+```
 
-FPGA reference design
+For example, 100 MHz with divider 108 gives approximately 115741 baud. Match the host settings to the actual FPGA clock and divider.
 
-Scripts
+### Common framing
+
+All requests and responses start with `0xAA`. Multibyte addresses and data use little-endian byte order. Read requests still include four data bytes, normally zero. There is no length field, escaping, transaction identifier, or burst command.
+
+Send one complete request, wait for its complete response, then send the next request. The bridge wrappers contain FIFO placeholders rather than implemented queues; pipelined requests can lose bytes while the engine is busy.
+
+### AXI compact mode
+
+Requests and responses are six bytes:
+
+| Byte | Contents |
+| --- | --- |
+| 0 | Start byte `0xAA` |
+| 1 | Bit 7: `0` for write, `1` for read; bits 6:0: word address |
+| 2–5 | 32-bit data, little endian |
+
+The AXI byte address is `word_address * 4`, covering aligned addresses `0x000` through `0x1FC`. Write responses echo the address and submitted data; read responses return the addressed value. The response preserves the read/write bit.
+
+Compact frames have **no CRC and no explicit error-status field**, including no serial indication of an AXI error response.
+
+Example: write `0x12345678` to AXI byte address `0x080`, then read it:
+
+```text
+Write request:  AA 20 78 56 34 12
+Write response: AA 20 78 56 34 12
+Read request:   AA A0 00 00 00 00
+Read response:  AA A0 78 56 34 12
+```
+
+### AXI extended mode
+
+Requests and responses are fourteen bytes:
+
+| Bytes | Contents |
+| --- | --- |
+| 0 | Start byte `0xAA` |
+| 1 | Command or response status |
+| 2–5 | 32-bit AXI byte address, little endian |
+| 6–9 | 32-bit data, little endian |
+| 10–13 | CRC-32, little endian |
+
+Request commands are `0x01` for write and `0x02` for read. Successful responses use `0x81` and `0x82`. Responses echo the address; write responses echo the submitted data.
+
+Response byte 1 uses bit 7 for request CRC acceptance, bit 6 for an AXI response error, bits 5:4 reserved, and bits 3:0 for the command. AXI errors produce `0xC1` or `0xC2`. With the default strict CRC policy, a bad request CRC prevents bus access and produces a response with bit 7 clear and zero data. Check response CRC and status before using returned data.
+
+The CRC calculation matches `calc_crc32()` in `script/axi_extended/uart2fpga.py`:
+
+```text
+Polynomial:  0x04C11DB7
+Initial CRC: 0xFFFFFFFF
+Input:       bytes 0 through 9, in frame order
+Bit order:   most significant bit first within each byte
+Reflection:  none
+Final XOR:   none
+Wire order:  CRC least significant byte first
+```
+
+This differs from the reflected CRC used by common `crc32` library functions.
+
+### Register bank compact mode
+
+Bank mode uses the same six-byte compact format, but its seven-bit address is a **register index**, exposed directly as `0..127` by the bank host utility:
+
+```text
+Write register 2: AA 02 78 56 34 12
+Read register 2:  AA 82 00 00 00 00
+```
+
+Internally, the engine converts the compact index to a byte address and selects the register using address bits 31:2. Register `i` occupies bits `32*i+31 downto 32*i` of the packed bank vectors. A write updates its stored output and pulses `write_reg_en(i)` for one clock. A read samples the matching slice of `read_reg`; application logic defines the readable values.
+
+The bank engine also contains extended-frame support, but the supplied bank host utility and testbench cover compact mode.
+
+### Error handling and timeout
+
+The engines search for `0xAA` while idle and then consume a fixed-size frame. Extended CRC failures produce CRC status and a response. Compact mode cannot detect payload corruption through a checksum.
+
+`timeout_error_flag` is a **sticky inactivity flag**. Its counter resets on each accepted input byte, but the flag clears only on reset. It can assert on an idle connection, not just after an incomplete request. The timeout process does not itself abort or reset the protocol state machine. At 100 MHz, the default threshold corresponds to approximately 15 ms.
+
+## 4. Integration
+
+### RTL instantiation
+
+For AXI access, instantiate `uart_axi_lite_bridge`, connect `m_axi_*` to an AXI4-Lite slave or interconnect, select `frame_mode`, and connect clock, reset, and UART pins. Its core dependencies are `uart.vhd`, `axil_end_bridge.vhd`, and `crc_checksum.vhd`.
+
+For direct register access, instantiate `uart_bank_bridge` with `nbreg` and `frame_mode => 1`. Connect `read_reg` to application status/readback data and consume `write_reg` together with `write_reg_en`. Its core dependencies are `uart.vhd`, `bank_end_bridge.vhd`, and `crc_checksum.vhd`.
+
+The reference integration additionally requires the AXI slave/interconnect entities and packages, system/version/timestamp packages, `system_module.vhd`, and one integration configuration. The VUnit runners show source selection; Quartus uses a selected package copied into `src/tmp/`.
+
+### AXI register address mapping
+
+The reference system has two interconnect input ports, external AXI and UART AXI, and four output slots. The interconnect subtracts the slot base before forwarding the address.
+
+| Slot | Contents | Compact base | Extended base |
+| --- | --- | --- | --- |
+| 0 | System module | `0x000` | `0x0000` |
+| 1 | 32 readback registers | `0x080` | `0x1000` |
+| 2 | 32 readback registers | `0x100` | `0x2000` |
+| 3 | 32 readback registers | `0x180` | `0x3000` |
+
+Register offsets are `4 * index`, from `0x00` through `0x7C`. Extended decoding windows span `0x200` bytes per slot, but the test slaves instantiate 32 registers; use the documented offsets within each window.
+
+System slot registers:
+
+| Index | Byte offset | Function |
+| --- | --- | --- |
+| 0 | `0x00` | Version: `MAJOR & MINOR & PATCH & BUILD` |
+| 1 | `0x04` | Build date, packed decimal digits `DDMMYYYY` |
+| 2 | `0x08` | Build time, packed decimal digits `00HHMM00` |
+| 3 | `0x0C` | Elapsed-time counter |
+| 4 | `0x10` | Clock countdown value |
+| 5 | `0x14` | Write generates `soft_reset`; no explicit read value is assigned |
+| 6 | `0x18` | Accepted CRC-check counter |
+| 7 | `0x1C` | Failed CRC-check counter |
+
+The countdown reloads at zero, so the elapsed-time counter increments every `clock_frequency + 1` clocks. Unassigned system read registers do not have defined application values.
+
+### Direct register bank mapping
+
+| Register index | Read value |
+| --- | --- |
+| 0 | Build date |
+| 1 | Build time |
+| 2–127 | Stored write-data readback |
+
+In `top_integration`, registers 0 and 1 always return timestamp constants. Writes can still update their bridge storage but cannot change the returned timestamp. Bank-mode UART access bypasses the AXI system slot, including its reset register and counters.
+
+## 5. Simulation and Validation
+
+### Testbenches and simulation
+
+Install Python, VUnit, and a compatible VHDL simulator. The supplied runners include ModelSim/Questa-specific waveform and visibility settings.
+
+```powershell
+python -m pip install vunit_hdl
+cd sim
+python run_top_integration_bank_compact_tb.py
+python run_top_integration_axi_compact_tb.py
+python run_top_integration_axi_extended_tb.py
+```
+
+Run each suite with its matching configuration from Section 2. Both compact runners load the same package and do not override `register_interface_mode`: select `0` for AXI compact and `1` for bank compact. Add the missing bank-size constant before compiling the extended integration.
+
+Use `-l` to list tests or `-g` for the simulator GUI. Testbenches cover reset, individual writes/reads, wider register sweeps, and timeout after a UART glitch. The extended suite includes a bad-CRC scenario, although some checks in that scenario are commented out. The bank suite includes a write/read sweep of its 126 readback registers.
+
+These describe the supplied tests, not a new simulation run or confirmed hardware validation result.
+
+### FPGA reference design: DE0
+
+The project is `board/de0/prj/top.qpf`. Its settings target Quartus II 13.1 and device `EP3C16F484C6`. `CLOCK_50` feeds the PLL, `SW(0)` controls reset, and LED 0 displays a heartbeat.
+
+| Signal | FPGA port | Device pin |
+| --- | --- | --- |
+| FPGA UART TX | `GPIO0_D_0` | `AB16` |
+| FPGA UART RX | `GPIO0_D_1` | `AA16` |
+
+The project assigns 3.3 V LVTTL to the UART pins. Connect crossed TX/RX and a common ground using a compatible UART adapter.
+
+Build preparation:
+
+1. Select the configuration constants described in Section 2.
+2. Copy that configuration into `src/tmp/top_integration_pkg.vhd`, as expected by the Quartus project.
+3. From `script/`, run `python generate_timestamp_pkg.py` to update the build timestamp if desired.
+4. Open the Quartus project, compile it, and program `top.sof` through JTAG.
+
+The supplied build helpers require local adjustments:
+
+- `board/de0/run.cmd` accepts `0` for extended or `1` for compact. It has a hard-coded Quartus path and changes into `board/de0/de0_top/prj`, whereas the actual project is in `board/de0/prj`.
+- `program.cmd` also has a hard-coded Quartus path and relies on an externally defined `REVISION` to construct the SOF filename. Set it to `top` or specify the filename explicitly.
+
+The PLL multiplies 50 MHz by `74/25`, producing **148 MHz**. Divider 37 therefore gives **500000 baud**, matching the host utilities. However, the board wrapper declares `CLOCK_FREQUENCY = 140_000_000`; align that constant with the PLL frequency for accurate system counters.
+
+### Host utilities
+
+The Python utilities depend on PySerial and Windows `msvcrt`. They default to `COM7`, 500000 baud, and a two-second receive timeout. Edit the port and baud rate for your setup, then run the utility matching the FPGA configuration:
+
+```powershell
+python -m pip install pyserial
+python script/bank_compact/uart2fpga.py
+# Or:
+python script/axi_compact/uart2fpga.py
+python script/axi_extended/uart2fpga.py
+```
+
+Menus provide register inspection, a single write/read example, and continuous fixed/random-data checks. AXI utility functions take **byte addresses**; bank utility functions take **register indices**. Extended AXI tests use the `0x1000`, `0x2000`, and `0x3000` blocks.
+
+AXI utility directories also include Windows C programs and `run.bat` launchers. The launchers compile with GCC and link `winmm`; update their hard-coded compiler paths before use. These utilities are examples: the extended Python read path validates the response CRC but does not comprehensively check response status and echoed address.
+
+### Performance and throughput
+
+With 8N1, each byte occupies ten bit times. A request/response exchange sends twelve bytes in compact mode or twenty-eight in extended mode:
+
+| Format | Bits per exchange | Minimum time at 500000 baud | Theoretical exchanges/s |
+| --- | --- | --- | --- |
+| Compact | 120 | 240 microseconds | 4167 |
+| Extended | 280 | 560 microseconds | 1786 |
+
+These are serialization-only bounds for sequential transactions. Actual performance includes UART gaps, protocol processing, AXI latency, USB/serial buffering, and host overhead. A write followed by a separate read requires two exchanges. No measured throughput is asserted here.
+
+## 6. Repository Structure
+
+```text
+src/
+  uart.vhd                       UART transmitter/receiver
+  uart_axi_lite_bridge.vhd        UART + AXI wrapper
+  axil_end_bridge.vhd             Serial framing and AXI transactions
+  uart_bank_bridge.vhd            UART + bank wrapper
+  bank_end_bridge.vhd             Serial framing and bank transactions
+  crc_checksum.vhd               CRC calculation
+  axi_lite_slave*.vhd            Register slave and types
+  axi_lite_interconnect*.vhd     Interconnect and types
+  axi_interconnect_single.vhd    Interconnect routing component
+  system_module.vhd              System registers and counters
+  top_integration.vhd            Reference integration
+  version_pkg.vhd                Version fields
+  timestamp_pkg.vhd              Generated build timestamp
+  utilities_pkg.vhd              Shared utilities
+  conf/                          Alternative integration packages
+  tmp/                           Selected package for Quartus
+tb/                              Three VUnit integration testbenches
+sim/                             Simulation runners and waveform setup
+board/de0/
+  src/                           Board wrapper and clock/reset logic
+  ip/                            Altera PLL
+  prj/                           Quartus project and timing constraints
+  run.cmd                        Build helper
+  program.cmd                    JTAG programming helper
+script/
+  generate_timestamp_pkg.py       Timestamp generator
+  axi_compact/                   Python and C host utilities
+  axi_extended/                  Python and C host utilities
+  bank_compact/                  Python host utility
+LICENSE                          The Unlicense
+```
+
+Local runs may leave generated libraries, reports, databases, and programming files under `sim/vunit_out/` and `board/de0/prj/`.
+
+## License
+
+The project includes [The Unlicense](LICENSE), dedicating the software to the public domain. Vendor-generated files may carry their own notices.
