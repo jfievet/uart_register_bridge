@@ -31,29 +31,33 @@ end entity uart;
 
 architecture rtl of uart is
 
-  constant sm_tx_idle      : std_logic_vector(3 downto 0) := std_logic_vector(to_unsigned(0, 4));
-  constant sm_tx_bit_start : std_logic_vector(3 downto 0) := std_logic_vector(to_unsigned(1, 4));
-  constant sm_tx_bit_0     : std_logic_vector(3 downto 0) := std_logic_vector(to_unsigned(2, 4));
-  constant sm_tx_bit_1     : std_logic_vector(3 downto 0) := std_logic_vector(to_unsigned(3, 4));
-  constant sm_tx_bit_2     : std_logic_vector(3 downto 0) := std_logic_vector(to_unsigned(4, 4));
-  constant sm_tx_bit_3     : std_logic_vector(3 downto 0) := std_logic_vector(to_unsigned(5, 4));
-  constant sm_tx_bit_4     : std_logic_vector(3 downto 0) := std_logic_vector(to_unsigned(6, 4));
-  constant sm_tx_bit_5     : std_logic_vector(3 downto 0) := std_logic_vector(to_unsigned(7, 4));
-  constant sm_tx_bit_6     : std_logic_vector(3 downto 0) := std_logic_vector(to_unsigned(8, 4));
-  constant sm_tx_bit_7     : std_logic_vector(3 downto 0) := std_logic_vector(to_unsigned(9, 4));
-  constant sm_tx_bit_stop  : std_logic_vector(3 downto 0) := std_logic_vector(to_unsigned(10, 4));
+  type uart_tx_state_t is (
+    sm_tx_idle,
+    sm_tx_bit_start,
+    sm_tx_bit_0,
+    sm_tx_bit_1,
+    sm_tx_bit_2,
+    sm_tx_bit_3,
+    sm_tx_bit_4,
+    sm_tx_bit_5,
+    sm_tx_bit_6,
+    sm_tx_bit_7,
+    sm_tx_bit_stop
+  );
 
-  constant sm_rx_idle      : std_logic_vector(3 downto 0) := std_logic_vector(to_unsigned(0, 4));
-  constant sm_rx_bit_start : std_logic_vector(3 downto 0) := std_logic_vector(to_unsigned(1, 4));
-  constant sm_rx_bit_0     : std_logic_vector(3 downto 0) := std_logic_vector(to_unsigned(2, 4));
-  constant sm_rx_bit_1     : std_logic_vector(3 downto 0) := std_logic_vector(to_unsigned(3, 4));
-  constant sm_rx_bit_2     : std_logic_vector(3 downto 0) := std_logic_vector(to_unsigned(4, 4));
-  constant sm_rx_bit_3     : std_logic_vector(3 downto 0) := std_logic_vector(to_unsigned(5, 4));
-  constant sm_rx_bit_4     : std_logic_vector(3 downto 0) := std_logic_vector(to_unsigned(6, 4));
-  constant sm_rx_bit_5     : std_logic_vector(3 downto 0) := std_logic_vector(to_unsigned(7, 4));
-  constant sm_rx_bit_6     : std_logic_vector(3 downto 0) := std_logic_vector(to_unsigned(8, 4));
-  constant sm_rx_bit_7     : std_logic_vector(3 downto 0) := std_logic_vector(to_unsigned(9, 4));
-  constant sm_rx_bit_stop  : std_logic_vector(3 downto 0) := std_logic_vector(to_unsigned(10, 4));
+  type uart_rx_state_t is (
+    sm_rx_idle,
+    sm_rx_bit_start,
+    sm_rx_bit_0,
+    sm_rx_bit_1,
+    sm_rx_bit_2,
+    sm_rx_bit_3,
+    sm_rx_bit_4,
+    sm_rx_bit_5,
+    sm_rx_bit_6,
+    sm_rx_bit_7,
+    sm_rx_bit_stop
+  );
 
   signal uart_clock_tx_cnt          : unsigned(31 downto 0);
   signal uart_clock_tx_en           : std_logic;
@@ -61,8 +65,8 @@ architecture rtl of uart is
   signal uart_clock_rx_cnt          : unsigned(31 downto 0);
   signal uart_clock_rx_en           : std_logic;
   signal uart_clock_rx_en_pulse_cnt : unsigned(31 downto 0);
-  signal uart_tx_sm                 : std_logic_vector(3 downto 0) := sm_tx_idle;
-  signal uart_rx_sm                 : std_logic_vector(3 downto 0) := sm_rx_idle;
+  signal uart_tx_sm                 : uart_tx_state_t := sm_tx_idle;
+  signal uart_rx_sm                 : uart_rx_state_t := sm_rx_idle;
 
   signal stored_data     : std_logic_vector(7 downto 0);
   signal s_axis_tready_t : std_logic;

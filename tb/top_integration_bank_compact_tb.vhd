@@ -226,7 +226,7 @@ begin
             info("--------------------------------------");
 
             info("Build the tx wr frame");
-            frame_addr <= x"00000000";
+            frame_addr <= x"00000002";
             frame_data <= x"12345678";
             wait for 0 ns;
             tx_frame <= build_wr_frame(frame_addr, frame_data);
