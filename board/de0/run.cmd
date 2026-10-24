@@ -68,6 +68,7 @@ rem Generate timestamp package
 rem -----------------------------------------
 
 cd ..
+cd rtl_common
 cd script
 
 python generate_timestamp_pkg.py
@@ -77,6 +78,7 @@ rem -----------------------------------------
 rem Navigate to Quartus project
 rem -----------------------------------------
 
+cd ..
 cd ..
 cd board
 cd de0

@@ -10,7 +10,8 @@ VU.add_random()
 VU.add_verification_components()
                                   
 LIB = VU.add_library("lib")         
-LIB.add_source_files( ROOT / "src" / "*.vhd")                      
+LIB.add_source_files( ROOT / "src" / "*.vhd")  
+LIB.add_source_files( ROOT / "rtl_common" / "src" / "*.vhd")
 LIB.add_source_files( ROOT / "src" / "conf" / "top_integration_compact_pkg.vhd") 
 LIB.add_source_files( ROOT /"tb" / "top_integration_axi_compact_tb.vhd")                                  
                                   

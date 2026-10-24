@@ -105,19 +105,19 @@ set_global_assignment -name LL_MEMBER_STATE LOCKED -section_id "Root Region"
 set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
 set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
 set_global_assignment -name VHDL_FILE ../../../src/version_pkg.vhd
-set_global_assignment -name VHDL_FILE ../../../src/utilities_pkg.vhd
+set_global_assignment -name VHDL_FILE ../../../rtl_common/src/utilities_pkg.vhd
 set_global_assignment -name VHDL_FILE ../../../src/uart_axi_lite_bridge.vhd
-set_global_assignment -name VHDL_FILE ../../../src/uart.vhd
+set_global_assignment -name VHDL_FILE ../../../rtl_common/src/uart.vhd
 set_global_assignment -name VHDL_FILE ../../../src/top_integration.vhd
 set_global_assignment -name VHDL_FILE ../../../src/system_module.vhd
 set_global_assignment -name VHDL_FILE ../../../src/timestamp_pkg.vhd
-set_global_assignment -name VHDL_FILE ../../../src/crc_checksum.vhd
+set_global_assignment -name VHDL_FILE ../../../rtl_common/src/crc_checksum.vhd
 set_global_assignment -name VHDL_FILE ../../../src/axil_end_bridge.vhd
-set_global_assignment -name VHDL_FILE ../../../src/axi_lite_slave_pkg.vhd
-set_global_assignment -name VHDL_FILE ../../../src/axi_lite_slave.vhd
-set_global_assignment -name VHDL_FILE ../../../src/axi_lite_interconnect_pkg.vhd
-set_global_assignment -name VHDL_FILE ../../../src/axi_lite_interconnect.vhd
-set_global_assignment -name VHDL_FILE ../../../src/axi_interconnect_single.vhd
+set_global_assignment -name VHDL_FILE ../../../rtl_common/src/axi_lite_slave_pkg.vhd
+set_global_assignment -name VHDL_FILE ../../../rtl_common/src/axi_lite_slave.vhd
+set_global_assignment -name VHDL_FILE ../../../rtl_common/src/axi_lite_interconnect_pkg.vhd
+set_global_assignment -name VHDL_FILE ../../../rtl_common/src/axi_lite_interconnect.vhd
+set_global_assignment -name VHDL_FILE ../../../rtl_common/src/axi_interconnect_single.vhd
 set_global_assignment -name VHDL_FILE ../../../src/tmp/top_integration_pkg.vhd
 set_global_assignment -name VHDL_FILE ../../../src/uart_bank_bridge.vhd
 set_global_assignment -name VHDL_FILE ../../../src/bank_end_bridge.vhd
