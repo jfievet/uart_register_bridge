@@ -2,6 +2,9 @@
 
 A VHDL design providing UART access to 32-bit FPGA registers through a custom request/response protocol. It includes an AXI4-Lite master bridge, a direct register-bank bridge, a reference integration, VUnit testbenches, and Windows host utilities.
 
+## 0. Clone
+git clone --recurse-submodules https://github.com/jfievet/uart_register_bridge
+
 ## 1. Overview
 
 ### Features
