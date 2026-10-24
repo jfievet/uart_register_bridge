@@ -1,0 +1,3 @@
+[submodule "rtl_common"]
+	path = rtl_common
+	url = https://github.com/jfievet/rtl_common
