@@ -16,6 +16,7 @@ use vunit_lib.stream_slave_pkg.all;
 library work;
 use work.utilities_pkg.all;
 use work.axi_lite_interconnect_pkg.all;
+use work.top_integration_pkg.all;
 
 entity top_integration_tb is
     generic (
@@ -310,21 +311,21 @@ begin
             info("Simulation finished");
         end if; -- end 004
         ------------------------------------------------------------------------
-        -- test_005_write_read_126
+        -- test_005_write_read_loop
         ------------------------------------------------------------------------
-        if run("test_005_write_read_126") then
+        if run("test_005_write_read_loop") then
             info("Wait for reset release");
             wait until falling_edge(async_reset);
             wait for 1 us;
 
             ------------------------------------------------------------------------
-            -- Write 126 registers
+            -- Write registers
             ------------------------------------------------------------------------
             info("--------------------------------------");
-            info("------ Write 126 Registers           ");
+            info("------ Write Registers                ");
             info("--------------------------------------");
 
-            for reg_index in 2 to 127 loop
+            for reg_index in 2 to const_nb_bank_registers-1 loop
 
                 frame_addr <= std_logic_vector(to_unsigned(reg_index, 32));
                 frame_data <= std_logic_vector(
@@ -352,13 +353,13 @@ begin
             end loop;
 
             ------------------------------------------------------------------------
-            -- Read and verify 126 registers
+            -- Read and verify registers
             ------------------------------------------------------------------------
             info("--------------------------------------");
-            info("------ Read 126 Registers            ");
+            info("------ Read Registers            ");
             info("--------------------------------------");
 
-            for reg_index in 2 to 127 loop
+            for reg_index in 2 to const_nb_bank_registers-1 loop
 
                 frame_addr <= std_logic_vector(to_unsigned(reg_index, 32));
                 wait for 0 ns;

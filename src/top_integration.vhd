@@ -277,8 +277,8 @@ begin
     -- Register 1: Time
     bank_read_reg(63 downto 32) <= C_TIME_REGISTER_HEX;
 
-    -- Registers 2 to 127: Write-data readback
-    bank_readback_gen : for i in 2 to 127 generate
+    -- Registers 2 to const_nb_bank_registers-1: Write-data readback
+    bank_readback_gen : for i in 2 to const_nb_bank_registers-1 generate
         bank_read_reg(i*32+31 downto i*32) <=
             bank_write_reg(i*32+31 downto i*32);
     end generate bank_readback_gen;
