@@ -1,0 +1,20 @@
+
+# Clock 27 MHz (onboard oscillator)
+IO_LOC "CLOCK_27" 47;
+IO_PORT "CLOCK_27" IO_TYPE=LVCMOS33;
+
+# Reset button
+IO_LOC "button" 44;
+IO_PORT "button" IO_TYPE=LVCMOS33;
+
+# Onboard red LED (active low)
+IO_LOC "LEDG" 9;
+IO_PORT "LEDG" IO_TYPE=LVCMOS33;
+
+# UART RX - external GPIO
+IO_LOC "GPIO0_D_1" 38;
+IO_PORT "GPIO0_D_1" IO_TYPE=LVCMOS33;
+
+# UART TX - external GPIO
+IO_LOC "GPIO0_D_0" 39;
+IO_PORT "GPIO0_D_0" IO_TYPE=LVCMOS33;
