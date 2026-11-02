@@ -4,9 +4,9 @@ IO_LOC "CLOCK_27" 47;
 IO_PORT "CLOCK_27" IO_TYPE=LVCMOS33;
 
 # Reset button
-IO_LOC "button" 44;
+IO_LOC "button" 13;
 IO_PORT "button" IO_TYPE=LVCMOS33;
 
 # Onboard red LED (active low)
-IO_LOC "LEDG" 9;
+IO_LOC "LEDG" 11;
 IO_PORT "LEDG" IO_TYPE=LVCMOS33;

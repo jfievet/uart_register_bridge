@@ -9,6 +9,7 @@ set -euo pipefail
 
 # Work from the script directory
 cd "$(dirname "$0")"
+exec > >(tee build.log) 2>&1
 
 # --- CONFIGURATION ---
 TOP_ENTITY="top"

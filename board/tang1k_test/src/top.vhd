@@ -36,7 +36,7 @@ architecture rtl of top is
     -- NCO generation signals
     --------------------------------------------------------
     signal nco_accu            : unsigned(31 downto 0) := (others => '0');
-    signal nco_accu_incr       : unsigned(31 downto 0) := to_unsigned(43, 32);
+    signal nco_accu_incr       : unsigned(31 downto 0) := to_unsigned(645, 32);
     signal nco_clock           : std_logic;
     signal nco_clock_d1        : std_logic;
     signal nco_clock_top       : std_logic;
