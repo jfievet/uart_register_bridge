@@ -27,7 +27,7 @@ BITSTREAM="pack.fs"
 SOURCES=(
     "../../src/version_pkg.vhd"
     "../../rtl_common/src/utilities_pkg.vhd"
-    "../../src/tmp/top_integration_pkg.vhd"
+    "../../src/conf/top_integration_compact_pkg.vhd"
     "../../rtl_common/src/axi_lite_slave_pkg.vhd"
     "../../rtl_common/src/axi_lite_interconnect_pkg.vhd"
     "../../src/timestamp_pkg.vhd"

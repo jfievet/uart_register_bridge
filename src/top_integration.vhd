@@ -118,9 +118,8 @@ architecture rtl of top_integration is
     -- signal test_register_write_en               : std_logic_vector(32 - 1 downto 0 );
     -- signal test_register_read                   : register_array_type;
 
-    type test_register_array_type is array(0 to 31) of register_array_type;
-
-    type test_register_array_en_type is array(0 to 31) of std_logic_vector(32 - 1 downto 0);
+    type test_register_array_type is array(0 to const_nb_slots-1) of register_array_type;
+    type test_register_array_en_type is array(0 to const_nb_slots-1) of std_logic_vector(32 - 1 downto 0);
 
     signal test_register_write    : test_register_array_type;
     signal test_register_write_en : test_register_array_en_type;
@@ -428,8 +427,10 @@ begin
 
     end generate loop_testslots_gen;
 
-    loop_testreg_gen : for i in 1 to const_nb_reg_per_slot - 1 generate
-        test_register_read(I) <= test_register_write(I);
+    loop_testreg_gen : for i in 1 to const_nb_slots - 1 generate
+        loop_in_testreg_gen: for k in 0 to const_nb_reg_per_slot-1 generate
+            test_register_read(i)(k) <= test_register_write(i)(k);
+        end generate loop_in_testreg_gen; 
     end generate loop_testreg_gen;
 
 end architecture rtl;

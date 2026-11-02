@@ -79,6 +79,7 @@ package top_integration_pkg is
     x"0001F1FF"
     );
 
+    constant const_nb_bank_registers      : integer := 16; -- Related to Register bank mode (unused here but constant must exist)
     constant register_interface_mode      : integer := 0; -- 0: AXI-Lite interface 1: Register bank interface
     constant frame_mode                   : integer := 0; -- 0:extended 1:compact
     constant const_system_module_slot     : integer := 0;
