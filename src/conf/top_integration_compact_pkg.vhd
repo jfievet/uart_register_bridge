@@ -100,7 +100,7 @@ package top_integration_pkg is
     x"0001F1FF"
     );
 
-    constant const_nb_bank_registers      : positive := 16;
+    constant const_nb_bank_registers      : positive := 128; -- Number of registers in bank compact
     constant register_interface_mode      : integer  := 1; -- 0: AXI-Lite interface 1: Register bank interface
     constant frame_mode                   : integer  := 1; -- 0:extended 1:compact
     constant const_system_module_slot     : integer  := 0;
