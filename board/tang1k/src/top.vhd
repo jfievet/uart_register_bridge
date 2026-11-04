@@ -1,3 +1,14 @@
+--  NA           NA
+--  13           44
+--  5V           GND
+--
+--        ...
+--
+--  16            19 UART RX
+--  15            29 UART TX
+--  27            30
+--  28            31
+
 
 library IEEE;
 use IEEE.std_logic_1164.all;
@@ -6,7 +17,7 @@ use IEEE.numeric_std.all;
 entity top is
     generic (
         simu   : integer := 0;
-        target : integer := 1 -- 0: altera, 1: xilinx
+        target : integer := 1 -- 0: altera, 1: no pll
     );
     port (
         CLOCK_27  : in  std_logic;
@@ -43,7 +54,7 @@ architecture rtl of top is
     -- NCO generation signals
     --------------------------------------------------------
     signal nco_accu            : unsigned(31 downto 0) := (others => '0');
-    constant nco_accu_incr_const : unsigned(31 downto 0) := to_unsigned(215,32);
+    constant nco_accu_incr_const : unsigned(31 downto 0) := to_unsigned(650,32);
     signal nco_accu_incr       : unsigned(31 downto 0) := nco_accu_incr_const;
     signal nco_clock           : std_logic;
     signal nco_clock_d1        : std_logic;
@@ -79,7 +90,7 @@ begin
     --------------------------------------------------------
     -- Reset input
     --------------------------------------------------------
-    rst <= button;
+    rst <= not(button);
 
     --------------------------------------------------------
     -- Clock and reset generation

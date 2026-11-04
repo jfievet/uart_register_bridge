@@ -25,22 +25,11 @@ BITSTREAM="pack.fs"
 # Packages must be compiled before dependent modules.
 
 SOURCES=(
-    "../../src/version_pkg.vhd"
-    "../../rtl_common/src/utilities_pkg.vhd"
     "../../src/conf/top_integration_compact_pkg.vhd"
-    "../../rtl_common/src/axi_lite_slave_pkg.vhd"
-    "../../rtl_common/src/axi_lite_interconnect_pkg.vhd"
     "../../src/timestamp_pkg.vhd"
-
-    "../../src/uart_axi_lite_bridge.vhd"
-    "../../rtl_common/src/axi_lite_slave.vhd"
     "../../rtl_common/src/uart.vhd"
-    "../../src/top_integration.vhd"
-    "../../src/system_module.vhd"
     "../../rtl_common/src/crc_checksum.vhd"
-    "../../src/axil_end_bridge.vhd"
-    "../../rtl_common/src/axi_lite_interconnect.vhd"
-    "../../rtl_common/src/axi_interconnect_single.vhd"
+    "../../src/top_integration.vhd"
     "../../src/uart_bank_bridge.vhd"
     "../../src/bank_end_bridge.vhd"
     "src/top.vhd"

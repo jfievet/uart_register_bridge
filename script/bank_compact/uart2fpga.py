@@ -7,8 +7,8 @@ import random
 # UART Configuration
 # ---------------------------------------------------------
 
-COM_PORT = "COM7"
-BAUDRATE = 500000
+COM_PORT = "COM9"
+BAUDRATE = 375000
 TIMEOUT = 2
 
 FRAME_START = 0xAA
@@ -21,7 +21,7 @@ CMD_READ = 1
 # Register Bank Map
 # ---------------------------------------------------------
 
-REG_COUNT = 128
+REG_COUNT = 4
 FIRST_RW_REG = 2
 LAST_RW_REG = REG_COUNT - 1
 MAX_REG_ADDR = REG_COUNT - 1
